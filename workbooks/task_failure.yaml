@@ -1,0 +1,72 @@
+---
+version: '2.0'
+name: tripleo.task_failure.v1
+description: TripleO Overcloud Deployment Workflows v1
+
+workflows:
+
+  test_exception_case:
+    type: direct
+
+    tasks:
+      initiate_failure:
+        action: tripleo.generate_exception
+        on-success: set_status_success
+        on-error: set_status_failed
+
+      set_status_success:
+        on-success: notify-zaqar
+        publish:
+          status: SUCCESS
+          message: <% task(initiate_failure).result %>
+
+      set_status_failed:
+        on-success: notify-zaqar
+        publish:
+          status: FAILED
+          message: <% task(initiate_failure).result %>
+
+      notify-zaqar:
+        action: zaqar.queue_post
+        input:
+          queue_name: <% $.queue_name %>
+          messages:
+            body:
+              type: tripleo.plan_management.v1.test_exception_case
+              execution_id: <% execution().id %>
+              payload:
+                status: <% $.get('status', '') %>
+                message: <% $.get('message', 'Not Provided') %>
+
+  test_error_result_case:
+    type: direct
+
+    tasks:
+      initiate_failure:
+        action: tripleo.generate_error
+        on-success: set_status_success
+        on-error: set_status_failed
+
+      set_status_success:
+        on-success: notify-zaqar
+        publish:
+          status: SUCCESS
+          message: <% task(initiate_failure).result %>
+
+      set_status_failed:
+        on-success: notify-zaqar
+        publish:
+          status: FAILED
+          message: <% task(initiate_failure).result %>
+
+      notify-zaqar:
+        action: zaqar.queue_post
+        input:
+          queue_name: <% $.queue_name %>
+          messages:
+            body:
+              type: tripleo.plan_management.v1.test_error_result_case
+              execution_id: <% execution().id %>
+              payload:
+                status: <% $.get('status', '') %>
+                message: <% $.get('message', 'Not Provided') %>
